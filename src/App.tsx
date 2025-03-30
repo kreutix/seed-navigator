@@ -53,7 +53,12 @@ const App: React.FC = () => {
           nsec: nostrKeys.nsec,
           npub: nostrKeys.npub,
           bitcoinAddress: bitcoinKeys.address,
-          bitcoinPrivateKey: bitcoinKeys.privateKeyWIF
+          bitcoinPrivateKey: bitcoinKeys.privateKeyWIF,
+          bitcoinPublicKey: bitcoinKeys.publicKey,
+          bitcoinPublicKeyHash: bitcoinKeys.publicKeyHash,
+          bitcoinPublicKeyHash160: bitcoinKeys.publicKeyHash160,
+          bitcoinWitnessProgram: bitcoinKeys.witnessProgram,
+          bitcoinChecksum: bitcoinKeys.checksum
         };
       });
     } catch (error) {

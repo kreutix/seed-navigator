@@ -14,6 +14,11 @@ export interface NostrKeys {
 export interface BitcoinKeys {
   address: string;
   privateKeyWIF: string;
+  publicKey: string;
+  publicKeyHash: string;
+  publicKeyHash160: string;
+  witnessProgram: string;
+  checksum: string;
 }
 
 export interface DerivedKeys {
@@ -22,6 +27,11 @@ export interface DerivedKeys {
   npub: string;
   bitcoinAddress: string;
   bitcoinPrivateKey: string;
+  bitcoinPublicKey: string;
+  bitcoinPublicKeyHash: string;
+  bitcoinPublicKeyHash160: string;
+  bitcoinWitnessProgram: string;
+  bitcoinChecksum: string;
 }
 
 const HARDENED_OFFSET = 0x80000000;
@@ -119,14 +129,48 @@ export const deriveBitcoinKeys = (masterKey: HDKey, path: string): BitcoinKeys =
   const key = masterKey.derive(path);
   if (!key.privateKey || !key.publicKey) throw new Error('Keys not available');
 
-  const sha256Hash = sha256(sha256(key.publicKey));
-  const pubkeyHash = ripemd160(sha256Hash);
+  const pathType = getPathType(path);
+  let address: string;
+  const publicKeyHex = bytesToHex(key.publicKey);
+  const publicKeyHash = bytesToHex(sha256(key.publicKey));
+  const publicKeyHash160 = bytesToHex(ripemd160(sha256(key.publicKey)));
 
-  // Create witness program: [version (0x00), pubkeyHash]
-  const witnessProgram = new Uint8Array([0x00, ...pubkeyHash]);
+  if (path.startsWith("m/84'/")) { // Native SegWit (P2WPKH)
+    const pubkeyHash = ripemd160(sha256(key.publicKey));
+    // For P2WPKH, witness version 0 and push 20 bytes
+    const witnessVersion = 0;
+    const programBytes = Uint8Array.from([...pubkeyHash]);
+    // Convert to 5-bit words for bech32
+    const words = bech32.toWords(programBytes);
+    // Add witness version to words
+    const witnessProgram = Uint8Array.from([witnessVersion, ...words]);
+    // Encode with bech32
+    address = bech32.encode('bc', witnessProgram);
+  } else if (path.startsWith("m/44'/")) { // Legacy (P2PKH)
+    const pubkeyHash = ripemd160(sha256(key.publicKey));
+    const versionAndHash = new Uint8Array([0x00, ...pubkeyHash]);
+    const checksum = sha256(sha256(versionAndHash)).slice(0, 4);
+    const final = new Uint8Array([...versionAndHash, ...checksum]);
+    address = base58Encode(final);
+  } else {
+    throw new Error('Unsupported derivation path for Bitcoin');
+  }
+
+  const pubkeyHash = ripemd160(sha256(key.publicKey));
+  // For witnessProgram display, show the full script including OP_PUSHBYTES_20
+  const scriptPubKey = new Uint8Array([0x00, 0x14, ...pubkeyHash]);
+  const witnessProgramWithChecksum = path.startsWith("m/84'/") 
+    ? bytesToHex(scriptPubKey)
+    : '';
+
   return {
-    address: bech32.encode('bc', bech32.toWords(witnessProgram)),
+    address,
     privateKeyWIF: privateKeyToWIF(key.privateKey),
+    publicKey: publicKeyHex,
+    publicKeyHash,
+    publicKeyHash160,
+    witnessProgram: witnessProgramWithChecksum,
+    checksum: path.startsWith("m/44'/") ? bytesToHex(sha256(sha256(new Uint8Array([0x00, ...pubkeyHash]))).slice(0, 4)) : ''
   };
 };
 

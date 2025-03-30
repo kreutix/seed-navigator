@@ -18,10 +18,23 @@ const KeyField: React.FC<{ label: string; value: string }> = ({ label, value }) 
   </div>
 );
 
-const BitcoinKeys: React.FC<{ address: string; privateKey: string }> = ({ address, privateKey }) => (
+const BitcoinKeys: React.FC<{ address: string; privateKey: string; publicKey: string; publicKeyHash: string; publicKeyHash160: string; witnessProgram: string; checksum: string }> = ({ 
+  address, 
+  privateKey, 
+  publicKey,
+  publicKeyHash,
+  publicKeyHash160,
+  witnessProgram,
+  checksum
+}) => (
   <div className="space-y-3">
     <KeyField label="Bitcoin Address" value={address} />
     <KeyField label="Bitcoin Private Key (WIF)" value={privateKey} />
+    <KeyField label="Public Key (hex)" value={publicKey} />
+    <KeyField label="Public Key Hash (SHA256)" value={publicKeyHash} />
+    <KeyField label="Public Key Hash (RIPEMD160)" value={publicKeyHash160} />
+    {witnessProgram && <KeyField label="Witness Program (P2WPKH)" value={witnessProgram} />}
+    {checksum && <KeyField label="Checksum (Legacy)" value={checksum} />}
   </div>
 );
 
@@ -42,7 +55,7 @@ export const DerivedKeyCard: React.FC<DerivedKeyCardProps> = ({ keys, type }) =>
     </div>
     
     {type === 'bitcoin' ? (
-      <BitcoinKeys address={keys.bitcoinAddress} privateKey={keys.bitcoinPrivateKey} />
+      <BitcoinKeys address={keys.bitcoinAddress} privateKey={keys.bitcoinPrivateKey} publicKey={keys.bitcoinPublicKey} publicKeyHash={keys.bitcoinPublicKeyHash} publicKeyHash160={keys.bitcoinPublicKeyHash160} witnessProgram={keys.bitcoinWitnessProgram} checksum={keys.bitcoinChecksum} />
     ) : (
       <NostrKeys nsec={keys.nsec} npub={keys.npub} />
     )}
