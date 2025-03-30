@@ -3,8 +3,10 @@ import * as bip39 from '@scure/bip39';
 import { bech32 } from 'bech32';
 import { ripemd160 } from '@noble/hashes/ripemd160';
 import { sha256 } from '@noble/hashes/sha256';
+import { sha512 } from '@noble/hashes/sha512';
 import { bytesToHex } from '@noble/hashes/utils';
 import { wordlist } from '@scure/bip39/wordlists/english';
+import { hmac } from '@noble/hashes/hmac';
 
 export interface NostrKeys {
   nsec: string;
@@ -39,8 +41,25 @@ const HARDENED_OFFSET = 0x80000000;
 // BIP85 application numbers
 const BIP85_APPLICATIONS = {
   BIP39: 39,
-  BIP39_WORD_COUNT: 12,
-  BIP39_LANGUAGE: 0,
+  BIP39_LANGUAGES: {
+    ENGLISH: 0,
+    JAPANESE: 1,
+    KOREAN: 2,
+    SPANISH: 3,
+    CHINESE_SIMPLIFIED: 4,
+    CHINESE_TRADITIONAL: 5,
+    FRENCH: 6,
+    ITALIAN: 7,
+    CZECH: 8,
+    PORTUGUESE: 9
+  },
+  BIP39_WORD_LENGTHS: {
+    WORDS_12: { words: 12, bits: 128 },
+    WORDS_15: { words: 15, bits: 160 },
+    WORDS_18: { words: 18, bits: 192 },
+    WORDS_21: { words: 21, bits: 224 },
+    WORDS_24: { words: 24, bits: 256 }
+  }
 } as const;
 
 const toHardened = (index: number): number => index + HARDENED_OFFSET;
@@ -48,15 +67,36 @@ const toHardened = (index: number): number => index + HARDENED_OFFSET;
 const formatHardenedPath = (index: number): string => 
   index >= HARDENED_OFFSET ? `${index - HARDENED_OFFSET}'` : index.toString();
 
-const constructBip85Path = (index: number): string => {
-  return `m/83696968'/${BIP85_APPLICATIONS.BIP39}'/${BIP85_APPLICATIONS.BIP39_WORD_COUNT}'/${BIP85_APPLICATIONS.BIP39_LANGUAGE}'/${index}'`;
+const validateBip85Params = (index: number, language: number, words: number) => {
+  if (index < 0 || index >= 0x80000000) {
+    throw new Error('Invalid index: must be between 0 and 2147483647');
+  }
+  if (language < 0 || language > 9) {
+    throw new Error('Invalid language code');
+  }
+  if (![12, 15, 18, 21, 24].includes(words)) {
+    throw new Error('Invalid word count: must be 12, 15, 18, 21, or 24');
+  }
 };
 
-const deriveBip85Entropy = (masterKey: HDKey, index: number): Uint8Array => {
-  const path = constructBip85Path(index);
+const constructBip85Path = (index: number, language: number = 0, words: number = 12): string => {
+  validateBip85Params(index, language, words);
+  // BIP-85 paths are always hardened, so we use the ' notation
+  return `m/83696968'/39'/${language}'/${words}'/${index}'`;
+};
+
+const deriveBip85Entropy = (masterKey: HDKey, index: number, language: number = 0, words: number = 12): Uint8Array => {
+  const path = constructBip85Path(index, language, words);
   const derived = masterKey.derive(path);
   if (!derived.privateKey) throw new Error('Unable to derive private key');
-  return derived.privateKey;
+  
+  // As per BIP-85: HMAC-SHA512(key="bip-entropy-from-k", msg=k)
+  const hmacKey = new TextEncoder().encode("bip-entropy-from-k");
+  const fullEntropy = hmac.create(sha512, hmacKey).update(derived.privateKey).digest();
+  
+  // Return the appropriate number of bits based on word count
+  const bits = BIP85_APPLICATIONS.BIP39_WORD_LENGTHS[`WORDS_${words}` as keyof typeof BIP85_APPLICATIONS.BIP39_WORD_LENGTHS].bits;
+  return fullEntropy.slice(0, bits / 8);
 };
 
 const base58Encode = (data: Uint8Array): string => {
@@ -87,14 +127,12 @@ export const deriveCurrentMnemonic = (rootSeedPhrase: string, path: number[]): s
   const seed = bip39.mnemonicToSeedSync(rootSeedPhrase);
   const masterKey = HDKey.fromMasterSeed(seed);
   
-  let currentEntropy = deriveBip85Entropy(masterKey, path[0]);
+  // For now, we're only supporting English 12-word mnemonics
+  const language = BIP85_APPLICATIONS.BIP39_LANGUAGES.ENGLISH;
+  const words = BIP85_APPLICATIONS.BIP39_WORD_LENGTHS.WORDS_12.words;
   
-  for (let i = 1; i < path.length; i++) {
-    const intermediateKey = HDKey.fromMasterSeed(currentEntropy);
-    currentEntropy = deriveBip85Entropy(intermediateKey, path[i]);
-  }
-  
-  return bip39.entropyToMnemonic(currentEntropy, wordlist);
+  const entropy = deriveBip85Entropy(masterKey, path[0], language, words);
+  return bip39.entropyToMnemonic(entropy, wordlist);
 };
 
 const privateKeyToWIF = (privateKey: Uint8Array): string => {
@@ -201,4 +239,50 @@ export const getPathType = (path: string): PathType => {
   }
 
   return 'unknown';
+};
+
+// Add test function to verify implementation
+export const testBip85Implementation = () => {
+  const testMasterKey = "xprv9s21ZrQH143K2LBWUUQRFXhucrQqBpKdRRxNVq2zBqsx8HVqFk2uYo8kmbaLLHRdqtQpUm98uKfu3vca1LqdGhUtyoFnCNkfmXRyPXLjbKb";
+  const masterKey = HDKey.fromExtendedKey(testMasterKey);
+  
+  // Test case 1: 12 words
+  const entropy1 = deriveBip85Entropy(masterKey, 0);
+  const expectedEntropy1 = "6250b68daf746d12a24d58b4787a714b";
+  const derivedEntropy1 = bytesToHex(entropy1);
+  const expectedMnemonic1 = "girl mad pet galaxy egg matter matrix prison refuse sense ordinary nose";
+  const derivedMnemonic1 = bip39.entropyToMnemonic(entropy1, wordlist);
+  
+  if (derivedEntropy1 !== expectedEntropy1) {
+    throw new Error(`BIP-85 test case 1 entropy verification failed:
+      Expected: ${expectedEntropy1}
+      Got: ${derivedEntropy1}`);
+  }
+  
+  if (derivedMnemonic1 !== expectedMnemonic1) {
+    throw new Error(`BIP-85 test case 1 mnemonic verification failed:
+      Expected: ${expectedMnemonic1}
+      Got: ${derivedMnemonic1}`);
+  }
+  
+  // Test case 2: 24 words
+  const entropy2 = deriveBip85Entropy(masterKey, 0, 0, 24);
+  const expectedEntropy2 = "ae131e2312cdc61331542efe0d1077bac5ea803adf24b313a4f0e48e9c51f37f";
+  const derivedEntropy2 = bytesToHex(entropy2);
+  const expectedMnemonic2 = "puppy ocean match cereal symbol another shed magic wrap hammer bulb intact gadget divorce twin tonight reason outdoor destroy simple truth cigar social volcano";
+  const derivedMnemonic2 = bip39.entropyToMnemonic(entropy2, wordlist);
+  
+  if (derivedEntropy2 !== expectedEntropy2) {
+    throw new Error(`BIP-85 test case 2 entropy verification failed:
+      Expected: ${expectedEntropy2}
+      Got: ${derivedEntropy2}`);
+  }
+  
+  if (derivedMnemonic2 !== expectedMnemonic2) {
+    throw new Error(`BIP-85 test case 2 mnemonic verification failed:
+      Expected: ${expectedMnemonic2}
+      Got: ${derivedMnemonic2}`);
+  }
+  
+  return true;
 }; 
