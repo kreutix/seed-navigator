@@ -124,11 +124,6 @@ const App: React.FC = () => {
               </button>
             )}
           </div>
-          
-          <DerivationPathSelector
-            value={derivationPath}
-            onChange={setDerivationPath}
-          />
         </div>
 
         <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700 mb-6">
@@ -154,9 +149,17 @@ const App: React.FC = () => {
         </div>
 
         <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
-          <h2 className="text-xl font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-            Derived Keys
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+              Derived Keys
+            </h2>
+            <div className="flex-1 max-w-xl ml-6">
+              <DerivationPathSelector
+                value={derivationPath}
+                onChange={setDerivationPath}
+              />
+            </div>
+          </div>
           <div className="grid gap-4">
             {derivedKeys.map((keys) => (
               <DerivedKeyCard key={keys.index} keys={keys} />
