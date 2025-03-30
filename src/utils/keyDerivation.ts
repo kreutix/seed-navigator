@@ -127,9 +127,9 @@ export const deriveCurrentMnemonic = (rootSeedPhrase: string, path: number[]): s
   const seed = bip39.mnemonicToSeedSync(rootSeedPhrase);
   const masterKey = HDKey.fromMasterSeed(seed);
   
-  // For now, we're only supporting English 12-word mnemonics
+  // Using English 24-word mnemonics
   const language = BIP85_APPLICATIONS.BIP39_LANGUAGES.ENGLISH;
-  const words = BIP85_APPLICATIONS.BIP39_WORD_LENGTHS.WORDS_12.words;
+  const words = BIP85_APPLICATIONS.BIP39_WORD_LENGTHS.WORDS_24.words;
   
   const entropy = deriveBip85Entropy(masterKey, path[0], language, words);
   return bip39.entropyToMnemonic(entropy, wordlist);
