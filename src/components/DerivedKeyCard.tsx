@@ -1,22 +1,34 @@
 import { DerivedKeys } from '../utils/keyDerivation';
-import { KeyDisplay } from './KeyDisplay';
+import { CopyButton } from './CopyButton';
 
 interface DerivedKeyCardProps {
   keys: DerivedKeys;
   type: 'bitcoin' | 'nostr';
 }
 
+const KeyField: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="space-y-1">
+    <div className="text-xs font-medium text-gray-400">{label}</div>
+    <div className="flex items-center gap-2">
+      <div className="flex-1 font-mono text-sm text-gray-300 break-all bg-gray-800 p-2 rounded border border-gray-700">
+        {value}
+      </div>
+      <CopyButton text={value} />
+    </div>
+  </div>
+);
+
 const BitcoinKeys: React.FC<{ address: string; privateKey: string }> = ({ address, privateKey }) => (
   <div className="space-y-3">
-    <KeyDisplay label="Bitcoin Address" value={address} />
-    <KeyDisplay label="Bitcoin Private Key (WIF)" value={privateKey} />
+    <KeyField label="Bitcoin Address" value={address} />
+    <KeyField label="Bitcoin Private Key (WIF)" value={privateKey} />
   </div>
 );
 
 const NostrKeys: React.FC<{ nsec: string; npub: string }> = ({ nsec, npub }) => (
   <div className="space-y-3">
-    <KeyDisplay label="Nostr Private Key (nsec)" value={nsec} />
-    <KeyDisplay label="Nostr Public Key (npub)" value={npub} />
+    <KeyField label="Nostr Private Key (nsec)" value={nsec} />
+    <KeyField label="Nostr Public Key (npub)" value={npub} />
   </div>
 );
 

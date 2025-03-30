@@ -5,6 +5,7 @@ import { wordlist } from '@scure/bip39/wordlists/english';
 import { deriveCurrentMnemonic, deriveNostrKeys, deriveBitcoinKeys, getPathType } from './utils/keyDerivation';
 import { DerivedKeyCard } from './components/DerivedKeyCard';
 import { DerivationPathSelector } from './components/DerivationPathSelector';
+import { CopyButton } from './components/CopyButton';
 
 const App: React.FC = () => {
   const [rootSeedPhrase, setRootSeedPhrase] = useState('');
@@ -147,12 +148,19 @@ const App: React.FC = () => {
                 <div className="flex-1 font-mono text-sm text-gray-300 break-all">
                   {mnemonic}
                 </div>
-                <button
-                  className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transform hover:scale-[1.02] transition-all duration-200"
-                  onClick={() => setCurrentPath([...currentPath, index])}
-                >
-                  Load
-                </button>
+                <div className="flex items-center gap-2">
+                  <CopyButton text={mnemonic} />
+                  <button
+                    className="p-2 text-gray-400 hover:text-gray-200 transition-colors duration-200"
+                    onClick={() => setCurrentPath([...currentPath, index])}
+                    title="Load this seed phrase"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                        d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             ))}
           </div>
