@@ -140,10 +140,13 @@ const App: React.FC = () => {
           <div className="space-y-3">
             {childMnemonics.map((mnemonic, index) => (
               <div key={index} 
-                className="flex justify-between items-center p-4 bg-gray-900 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors duration-200">
-                <span className="font-mono text-sm text-gray-300 break-all pr-4">
-                  Child {index}: {mnemonic}
-                </span>
+                className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors duration-200">
+                <div className="font-mono text-gray-400 min-w-[16px]">
+                  {index}:
+                </div>
+                <div className="flex-1 font-mono text-sm text-gray-300 break-all">
+                  {mnemonic}
+                </div>
                 <button
                   className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transform hover:scale-[1.02] transition-all duration-200"
                   onClick={() => setCurrentPath([...currentPath, index])}
