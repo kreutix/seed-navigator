@@ -22,40 +22,47 @@ export interface DerivedKeys {
   bitcoinPrivateKey: string;
 }
 
+// Constants
+const HARDENED_OFFSET = 0x80000000; // 2^31
+const WORD_COUNT = 24; // Always use 24 words
+const ENTROPY_BYTES = 32; // 256 bits = 32 bytes for 24 words
+
 // BIP85 application numbers
 const BIP85_APPLICATIONS = {
   BIP39: 39,
   XPRV: 32,
 } as const;
 
-// Constants for BIP39
-const WORD_COUNT = 24; // Always use 24 words
-const ENTROPY_BYTES = 32; // 256 bits = 32 bytes for 24 words
+// Convert number to hardened index
+const toHardened = (index: number): number => index + HARDENED_OFFSET;
 
-// Convert number to 32-bit big-endian bytes
-const indexToBytes = (index: number): Uint8Array => {
-  const bytes = new Uint8Array(4);
-  bytes[0] = (index >> 24) & 0xff;
-  bytes[1] = (index >> 16) & 0xff;
-  bytes[2] = (index >> 8) & 0xff;
-  bytes[3] = index & 0xff;
-  return bytes;
-};
+// Format a number as a hardened index string
+const hardenedPath = (index: number): string => `${index}'`;
 
 // Derive BIP85 child entropy
-const deriveBip85Entropy = (masterKey: HDKey, path: string): Uint8Array => {
-  const childKey = masterKey.derive(path);
+const deriveBip85Entropy = (masterKey: HDKey, index: number): Uint8Array => {
+  // BIP85 path: m/83696968'/39'/0'/24'/index'
+  const path = [
+    toHardened(83696968),
+    toHardened(BIP85_APPLICATIONS.BIP39),
+    toHardened(0),
+    toHardened(WORD_COUNT),
+    toHardened(index)
+  ];
+  
+  const childKey = masterKey.deriveChild(path[0])
+    .deriveChild(path[1])
+    .deriveChild(path[2])
+    .deriveChild(path[3])
+    .deriveChild(path[4]);
+
   if (!childKey.privateKey) throw new Error('Could not derive private key');
-  return new Uint8Array(childKey.privateKey);
+  return childKey.privateKey;
 };
 
 // Derive BIP39 mnemonic using BIP85
 const deriveBip85Mnemonic = (masterKey: HDKey, index: number): string => {
-  // BIP85 path: m/83696968'/39'/0'/24'/index' (always use 24 words)
-  const path = `m/83696968'/${BIP85_APPLICATIONS.BIP39}'/0'/${WORD_COUNT}'/${index}'`;
-  const entropy = deriveBip85Entropy(masterKey, path);
-  
-  // Use full 32 bytes of entropy for 24 words
+  const entropy = deriveBip85Entropy(masterKey, index);
   return bip39.entropyToMnemonic(entropy, wordlist);
 };
 
@@ -104,13 +111,14 @@ const privateKeyToWIF = (privateKey: Uint8Array): string => {
   return wif;
 };
 
-export const deriveNostrKeys = (hdKey: HDKey): NostrKeys => {
-  if (!hdKey.privateKey || !hdKey.publicKey) {
+export const deriveNostrKeys = (masterKey: HDKey, path: string): NostrKeys => {
+  const derivedKey = masterKey.derive(path);
+  if (!derivedKey.privateKey || !derivedKey.publicKey) {
     throw new Error('Keys not available in the HDKey');
   }
 
-  const privateKeyWords = bech32.toWords(hdKey.privateKey);
-  const publicKeyWords = bech32.toWords(hdKey.publicKey);
+  const privateKeyWords = bech32.toWords(derivedKey.privateKey);
+  const publicKeyWords = bech32.toWords(derivedKey.publicKey);
 
   return {
     nsec: bech32.encode('nsec', privateKeyWords),
@@ -118,8 +126,8 @@ export const deriveNostrKeys = (hdKey: HDKey): NostrKeys => {
   };
 };
 
-export const deriveBitcoinKeys = (hdKey: HDKey, path: string): BitcoinKeys => {
-  const derivedKey = hdKey.derive(path);
+export const deriveBitcoinKeys = (masterKey: HDKey, path: string): BitcoinKeys => {
+  const derivedKey = masterKey.derive(path);
   if (!derivedKey.publicKey || !derivedKey.privateKey) {
     throw new Error('Keys not available');
   }

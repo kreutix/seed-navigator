@@ -41,9 +41,12 @@ const App: React.FC = () => {
       const masterKey = HDKey.fromMasterSeed(seed);
       
       return Array.from({ length: 10 }, (_, i) => {
-        const path = `${derivationPath}/${i}`;
-        const derivedKey = masterKey.derive(path);
-        const nostrKeys = deriveNostrKeys(derivedKey);
+        // Ensure path starts with "m/" and append index
+        const path = derivationPath.startsWith('m/') ? 
+          `${derivationPath}/${i}` : 
+          `m/${derivationPath}/${i}`;
+
+        const nostrKeys = deriveNostrKeys(masterKey, path);
         const bitcoinKeys = deriveBitcoinKeys(masterKey, path);
         return {
           index: i,
