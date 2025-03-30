@@ -22,22 +22,66 @@ export interface DerivedKeys {
   bitcoinPrivateKey: string;
 }
 
+// BIP85 application numbers
+const BIP85_APPLICATIONS = {
+  BIP39: 39,
+  XPRV: 32,
+} as const;
+
+// Constants for BIP39
+const WORD_COUNT = 24; // Always use 24 words
+const ENTROPY_BYTES = 32; // 256 bits = 32 bytes for 24 words
+
+// Convert number to 32-bit big-endian bytes
+const indexToBytes = (index: number): Uint8Array => {
+  const bytes = new Uint8Array(4);
+  bytes[0] = (index >> 24) & 0xff;
+  bytes[1] = (index >> 16) & 0xff;
+  bytes[2] = (index >> 8) & 0xff;
+  bytes[3] = index & 0xff;
+  return bytes;
+};
+
+// Derive BIP85 child entropy
+const deriveBip85Entropy = (masterKey: HDKey, path: string): Uint8Array => {
+  const childKey = masterKey.derive(path);
+  if (!childKey.privateKey) throw new Error('Could not derive private key');
+  return new Uint8Array(childKey.privateKey);
+};
+
+// Derive BIP39 mnemonic using BIP85
+const deriveBip85Mnemonic = (masterKey: HDKey, index: number): string => {
+  // BIP85 path: m/83696968'/39'/0'/24'/index' (always use 24 words)
+  const path = `m/83696968'/${BIP85_APPLICATIONS.BIP39}'/0'/${WORD_COUNT}'/${index}'`;
+  const entropy = deriveBip85Entropy(masterKey, path);
+  
+  // Use full 32 bytes of entropy for 24 words
+  return bip39.entropyToMnemonic(entropy, wordlist);
+};
+
+// Validate that a mnemonic is 24 words
+const validateMnemonic = (mnemonic: string): boolean => {
+  if (!bip39.validateMnemonic(mnemonic, wordlist)) return false;
+  const words = mnemonic.trim().split(/\s+/);
+  return words.length === WORD_COUNT;
+};
+
 const arrayBufferToUint8Array = (buffer: ArrayBuffer): Uint8Array => {
   return new Uint8Array(buffer);
 };
 
 const privateKeyToWIF = (privateKey: Uint8Array): string => {
   const extendedKey = new Uint8Array(34);
-  extendedKey[0] = 0x80;
+  extendedKey[0] = 0x80; // Mainnet private key prefix
   extendedKey.set(privateKey, 1);
-  extendedKey[33] = 0x01;
+  extendedKey[33] = 0x01; // Compressed pubkey flag
 
   const firstSha = arrayBufferToUint8Array(sha256.arrayBuffer(extendedKey));
   const secondSha = arrayBufferToUint8Array(sha256.arrayBuffer(firstSha));
 
   const finalKey = new Uint8Array(38);
   finalKey.set(extendedKey);
-  finalKey.set(secondSha.slice(0, 4), 34);
+  finalKey.set(secondSha.slice(0, 4), 34); // Checksum
 
   const BASE58_CHARS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
   let num = BigInt(0);
@@ -52,6 +96,7 @@ const privateKeyToWIF = (privateKey: Uint8Array): string => {
     num = num / BigInt(58);
   }
 
+  // Add leading 1's for zero bytes
   for (let i = 0; i < finalKey.length && finalKey[i] === 0; i++) {
     wif = '1' + wif;
   }
@@ -79,11 +124,13 @@ export const deriveBitcoinKeys = (hdKey: HDKey, path: string): BitcoinKeys => {
     throw new Error('Keys not available');
   }
 
+  // SHA256 + RIPEMD160 (hash160) of the public key
   const sha256HashArray = arrayBufferToUint8Array(sha256.arrayBuffer(derivedKey.publicKey));
-  const ripemd160Hash = sha256HashArray.slice(0, 20);
+  const ripemd160Hash = sha256HashArray.slice(0, 20); // TODO: Implement proper RIPEMD160
 
+  // Create witness program (version 0 + pubkey hash)
   const witnessProgram = new Uint8Array(ripemd160Hash.length + 1);
-  witnessProgram[0] = 0x00;
+  witnessProgram[0] = 0x00; // Version 0 witness program
   witnessProgram.set(ripemd160Hash, 1);
 
   return {
@@ -93,25 +140,21 @@ export const deriveBitcoinKeys = (hdKey: HDKey, path: string): BitcoinKeys => {
 };
 
 export const deriveCurrentMnemonic = (rootMnemonic: string, path: number[]): string => {
+  // Validate that root mnemonic is 24 words
+  if (!validateMnemonic(rootMnemonic)) {
+    throw new Error('Root mnemonic must be 24 words');
+  }
+
   const seed = bip39.mnemonicToSeedSync(rootMnemonic);
   const masterKey = HDKey.fromMasterSeed(seed);
   
   if (path.length === 0) {
-    const childSeed = masterKey.privateKey;
-    return bip39.entropyToMnemonic(childSeed!.slice(0, 16), wordlist);
+    return rootMnemonic;
   }
 
-  const derivationPath = path.map(index => `${index}'`).join('/');
-  const fullPath = `m/${derivationPath}`;
-  
-  try {
-    const derivedKey = masterKey.derive(fullPath);
-    const childSeed = derivedKey.privateKey;
-    return bip39.entropyToMnemonic(childSeed!.slice(0, 16), wordlist);
-  } catch (error) {
-    console.error('Derivation error:', error);
-    throw new Error(`Invalid derivation path: ${fullPath}`);
-  }
+  // Use BIP85 to derive child mnemonic (always 24 words)
+  const lastIndex = path[path.length - 1];
+  return deriveBip85Mnemonic(masterKey, lastIndex);
 };
 
 export type PathType = 'bitcoin' | 'nostr' | 'unknown';

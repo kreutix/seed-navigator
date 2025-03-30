@@ -63,14 +63,19 @@ const App: React.FC = () => {
   const handleSetRootSeed = () => {
     if (!rootSeedPhrase.trim()) return;
     try {
+      const words = rootSeedPhrase.trim().split(/\s+/);
+      if (words.length !== 24) {
+        alert('Please enter a valid 24-word seed phrase');
+        return;
+      }
       if (!bip39.validateMnemonic(rootSeedPhrase, wordlist)) {
-        alert('Invalid mnemonic phrase');
+        alert('Invalid BIP39 seed phrase');
         return;
       }
       setCurrentPath([]);
     } catch (error) {
       console.error('Error setting root seed:', error);
-      alert('Invalid mnemonic phrase');
+      alert('Invalid seed phrase');
     }
   };
 
