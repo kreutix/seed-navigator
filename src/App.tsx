@@ -4,6 +4,7 @@ import { HDKey } from '@scure/bip32';
 import { wordlist } from '@scure/bip39/wordlists/english';
 import { deriveCurrentMnemonic, deriveNostrKeys, deriveBitcoinKeys } from './utils/keyDerivation';
 import { DerivedKeyCard } from './components/DerivedKeyCard';
+import { DerivationPathSelector } from './components/DerivationPathSelector';
 
 const App: React.FC = () => {
   const [rootSeedPhrase, setRootSeedPhrase] = useState('');
@@ -124,15 +125,10 @@ const App: React.FC = () => {
             )}
           </div>
           
-          <div className="flex items-center space-x-4">
-            <span className="text-gray-400">Derivation Path:</span>
-            <input
-              type="text"
-              className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              value={derivationPath}
-              onChange={(e) => setDerivationPath(e.target.value)}
-            />
-          </div>
+          <DerivationPathSelector
+            value={derivationPath}
+            onChange={setDerivationPath}
+          />
         </div>
 
         <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700 mb-6">
