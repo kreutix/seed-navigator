@@ -22,8 +22,8 @@ Before using SeedNavigator, ensure you have the following installed:
 1. **Clone the repository**:bash
     
     ```bash
-    git clone https://github.com/your-username/seednavigator.git
-    cd seednavigator
+    git clone https://github.com/kreutix/seed-navigator.git
+    cd seed-navigator
     ```
     
 2. **Install dependencies**:bashOr, if using Yarn:bash
