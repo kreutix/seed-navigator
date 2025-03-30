@@ -19,7 +19,7 @@ const COMMON_PATHS = {
 };
 
 export const DerivationPathSelector: React.FC<DerivationPathSelectorProps> = ({ value, onChange }) => {
-  const [showSelect, setShowSelect] = useState(true);
+  const [showSelect, setShowSelect] = useState(false);
   const allPaths = [...COMMON_PATHS.bitcoin, ...COMMON_PATHS.nostr];
   const currentTemplate = allPaths.find(p => p.path === value);
 

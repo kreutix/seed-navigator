@@ -10,7 +10,7 @@ import { CopyButton } from './components/CopyButton';
 const App: React.FC = () => {
   const [rootSeedPhrase, setRootSeedPhrase] = useState('');
   const [currentPath, setCurrentPath] = useState<number[]>([]);
-  const [derivationPath, setDerivationPath] = useState("m/84'/0'/0'/0");
+  const [derivationPath, setDerivationPath] = useState("m/84'/0'/0'/0"); // Native SegWit path
 
   const currentMnemonic = useMemo(() => {
     if (!rootSeedPhrase) return '';
