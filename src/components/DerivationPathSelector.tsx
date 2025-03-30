@@ -19,28 +19,29 @@ const COMMON_PATHS = {
 };
 
 export const DerivationPathSelector: React.FC<DerivationPathSelectorProps> = ({ value, onChange }) => {
-  const [isCustom, setIsCustom] = useState(false);
+  const [showSelect, setShowSelect] = useState(true);
   const allPaths = [...COMMON_PATHS.bitcoin, ...COMMON_PATHS.nostr];
-  const isKnownPath = allPaths.some(p => p.path === value);
+  const currentTemplate = allPaths.find(p => p.path === value);
 
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newValue = e.target.value;
-    if (newValue === 'custom') {
-      setIsCustom(true);
-    } else {
-      setIsCustom(false);
+    if (newValue !== 'select') {
       onChange(newValue);
+      setShowSelect(false);
     }
   };
 
   return (
     <div className="flex items-center gap-2">
-      {!isCustom ? (
+      {showSelect ? (
         <select
-          value={isKnownPath ? value : 'custom'}
+          value="select"
           onChange={handleSelectChange}
           className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-300"
         >
+          <option value="select" disabled className="bg-gray-900">
+            Select template...
+          </option>
           <optgroup label="Bitcoin" className="bg-gray-900">
             {COMMON_PATHS.bitcoin.map(({ label, path }) => (
               <option key={path} value={path} className="bg-gray-900">
@@ -55,21 +56,22 @@ export const DerivationPathSelector: React.FC<DerivationPathSelectorProps> = ({ 
               </option>
             ))}
           </optgroup>
-          <option value="custom" className="bg-gray-900">Custom Path</option>
         </select>
       ) : (
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-300"
-          placeholder="Enter custom path..."
-        />
+        <div className="flex-1 flex items-center gap-2">
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-300"
+          />
+        </div>
       )}
-      {isCustom && (
+      {!showSelect && (
         <button
-          onClick={() => setIsCustom(false)}
+          onClick={() => setShowSelect(true)}
           className="px-2 py-1.5 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 text-sm"
+          title="Back to templates"
         >
           ←
         </button>
