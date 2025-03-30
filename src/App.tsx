@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import * as bip39 from '@scure/bip39';
 import { HDKey } from '@scure/bip32';
 import { wordlist } from '@scure/bip39/wordlists/english';
-import { deriveCurrentMnemonic, deriveNostrKeys, deriveBitcoinKeys } from './utils/keyDerivation';
+import { deriveCurrentMnemonic, deriveNostrKeys, deriveBitcoinKeys, getPathType } from './utils/keyDerivation';
 import { DerivedKeyCard } from './components/DerivedKeyCard';
 import { DerivationPathSelector } from './components/DerivationPathSelector';
 
@@ -57,6 +57,8 @@ const App: React.FC = () => {
       return [];
     }
   }, [currentMnemonic, derivationPath]);
+
+  const pathType = getPathType(derivationPath);
 
   const handleSetRootSeed = () => {
     if (!rootSeedPhrase.trim()) return;
@@ -151,7 +153,7 @@ const App: React.FC = () => {
         <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-              Derived Keys
+              {pathType === 'bitcoin' ? 'Bitcoin Keys' : 'Nostr Keys'}
             </h2>
             <div className="flex-1 max-w-xl ml-6">
               <DerivationPathSelector
@@ -160,11 +162,22 @@ const App: React.FC = () => {
               />
             </div>
           </div>
-          <div className="grid gap-4">
-            {derivedKeys.map((keys) => (
-              <DerivedKeyCard key={keys.index} keys={keys} />
-            ))}
-          </div>
+          {pathType !== 'unknown' && (
+            <div className="grid gap-4">
+              {derivedKeys.map((keys) => (
+                <DerivedKeyCard 
+                  key={keys.index} 
+                  keys={keys} 
+                  type={pathType === 'bitcoin' ? 'bitcoin' : 'nostr'}
+                />
+              ))}
+            </div>
+          )}
+          {pathType === 'unknown' && (
+            <div className="text-center py-8 text-gray-400">
+              Please select a valid Bitcoin or Nostr derivation path
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -112,4 +112,23 @@ export const deriveCurrentMnemonic = (rootMnemonic: string, path: number[]): str
     console.error('Derivation error:', error);
     throw new Error(`Invalid derivation path: ${fullPath}`);
   }
+};
+
+export type PathType = 'bitcoin' | 'nostr' | 'unknown';
+
+export const getPathType = (path: string): PathType => {
+  // Bitcoin paths
+  if (path.startsWith("m/44'/0'/") || // Legacy
+      path.startsWith("m/49'/0'/") || // Nested SegWit
+      path.startsWith("m/84'/0'/") || // Native SegWit
+      path.startsWith("m/86'/0'/")) { // Taproot
+    return 'bitcoin';
+  }
+  
+  // Nostr paths
+  if (path.startsWith("m/44'/1237'/")) {
+    return 'nostr';
+  }
+
+  return 'unknown';
 }; 
