@@ -8,9 +8,10 @@ interface DerivedKeyCardProps {
 }
 
 interface KeyFieldProps {
-  label: string;
+  label?: string;
   value: string;
-  index: number;
+  index?: number;
+  variant: 'main' | 'detail';
   toggleDetails?: () => void;
   showDetailsButton?: boolean;
   showDetails?: boolean;
@@ -20,17 +21,22 @@ const KeyField: React.FC<KeyFieldProps> = ({
   label, 
   value, 
   index,
+  variant,
   toggleDetails, 
   showDetailsButton = false,
   showDetails
 }) => (
   <div className="flex items-center gap-2 p-0">
-    <span className="px-2 py-1 bg-gray-800 rounded-full text-xs text-gray-400 border border-gray-700">
-      #{index}
-    </span>
-    <span className="text-xs text-gray-400 whitespace-nowrap">
-      {label}
-    </span>
+    {variant === 'main' && index !== undefined && (
+      <span className="px-2 py-1 bg-gray-800 rounded-full text-xs text-gray-400 border border-gray-700">
+        #{index}
+      </span>
+    )}
+    {variant === 'detail' && label && (
+      <span className="text-xs text-gray-400 whitespace-nowrap w-48">
+        {label}
+      </span>
+    )}
     <div className="flex-1 font-mono text-sm text-gray-300 break-all bg-gray-800 p-1.5 rounded border border-gray-700">
       {value}
     </div>
@@ -66,9 +72,9 @@ const BitcoinKeys: React.FC<{ address: string; privateKey: string; publicKey: st
   return (
     <div className="space-y-1">
       <KeyField 
-        label="Bitcoin Address"
         value={address} 
         index={index}
+        variant="main"
         toggleDetails={toggleDetails}
         showDetailsButton={true}
         showDetails={showDetails}
@@ -76,12 +82,12 @@ const BitcoinKeys: React.FC<{ address: string; privateKey: string; publicKey: st
       
       {showDetails && (
         <div className="space-y-1 border-t border-gray-700 pt-1">
-          <KeyField label="Bitcoin Private Key (WIF)" value={privateKey} index={index} />
-          <KeyField label="Public Key (hex)" value={publicKey} index={index} />
-          <KeyField label="Public Key Hash (SHA256)" value={publicKeyHash} index={index} />
-          <KeyField label="Public Key Hash (RIPEMD160)" value={publicKeyHash160} index={index} />
-          {witnessProgram && <KeyField label="Witness Program (P2WPKH)" value={witnessProgram} index={index} />}
-          {checksum && <KeyField label="Checksum (Legacy)" value={checksum} index={index} />}
+          <KeyField label="Bitcoin Private Key (WIF)" value={privateKey} variant="detail" />
+          <KeyField label="Public Key (hex)" value={publicKey} variant="detail" />
+          <KeyField label="Public Key Hash (SHA256)" value={publicKeyHash} variant="detail" />
+          <KeyField label="Public Key Hash (RIPEMD160)" value={publicKeyHash160} variant="detail" />
+          {witnessProgram && <KeyField label="Witness Program (P2WPKH)" value={witnessProgram} variant="detail" />}
+          {checksum && <KeyField label="Checksum (Legacy)" value={checksum} variant="detail" />}
         </div>
       )}
     </div>
@@ -96,9 +102,9 @@ const NostrKeys: React.FC<{ nsec: string; npub: string; index: number }> = ({ ns
   return (
     <div className="space-y-1">
       <KeyField 
-        label="Nostr Public Key (npub)"
         value={npub} 
         index={index}
+        variant="main"
         toggleDetails={toggleDetails}
         showDetailsButton={true}
         showDetails={showDetails}
@@ -106,7 +112,7 @@ const NostrKeys: React.FC<{ nsec: string; npub: string; index: number }> = ({ ns
       
       {showDetails && (
         <div className="space-y-1 border-t border-gray-700 pt-1">
-          <KeyField label="Nostr Private Key (nsec)" value={nsec} index={index} />
+          <KeyField label="Nostr Private Key (nsec)" value={nsec} variant="detail" />
         </div>
       )}
     </div>
