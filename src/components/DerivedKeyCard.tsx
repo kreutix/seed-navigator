@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { DerivedKeys } from '../utils/keyDerivation';
 import { CopyButton } from './CopyButton';
+import { Tooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
 
 interface DerivedKeyCardProps {
   keys: DerivedKeys;
@@ -32,11 +34,6 @@ const KeyField: React.FC<KeyFieldProps> = ({
         #{index}
       </span>
     )}
-    {variant === 'detail' && label && (
-      <span className="text-xs text-gray-400 whitespace-nowrap w-48">
-        {label}
-      </span>
-    )}
     <div className="flex-1 font-mono text-sm text-gray-300 break-all bg-gray-800 p-1.5 rounded border border-gray-700">
       {value}
     </div>
@@ -46,12 +43,18 @@ const KeyField: React.FC<KeyFieldProps> = ({
         <button 
           onClick={toggleDetails}
           className="p-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 text-xs font-medium transition-colors duration-200"
-          title={showDetails ? "Hide details" : "Show details"}
+          data-tooltip-id="button-tooltip"
+          data-tooltip-content={showDetails ? "Hide details" : "Show details"}
         >
           {showDetails ? "Hide" : "Details"}
         </button>
       )}
     </div>
+    {variant === 'detail' && label && (
+      <span className="text-xs text-gray-400 whitespace-nowrap">
+        {label}
+      </span>
+    )}
   </div>
 );
 
@@ -135,5 +138,6 @@ export const DerivedKeyCard: React.FC<DerivedKeyCardProps> = ({ keys, type }) =>
     ) : (
       <NostrKeys nsec={keys.nsec} npub={keys.npub} index={keys.index} />
     )}
+    <Tooltip id="button-tooltip" />
   </div>
 );

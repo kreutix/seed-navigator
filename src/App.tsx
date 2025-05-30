@@ -6,6 +6,8 @@ import { deriveCurrentMnemonic, deriveNostrKeys, deriveBitcoinKeys, getPathType 
 import { DerivedKeyCard } from './components/DerivedKeyCard';
 import { DerivationPathSelector } from './components/DerivationPathSelector';
 import { CopyButton } from './components/CopyButton';
+import { Tooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
 
 // Helper function to truncate mnemonic to first 4 words
 const truncateMnemonic = (mnemonic: string): string => {
@@ -197,7 +199,8 @@ const App: React.FC = () => {
                   <button
                     className="p-1.5 text-gray-400 hover:text-gray-200 transition-colors duration-200 bg-gray-800 rounded border border-gray-700"
                     onClick={() => setCurrentPath([...currentPath, index])}
-                    title="Navigate to this seed phrase"
+                    data-tooltip-id="navigate-tooltip"
+                    data-tooltip-content="Navigate to this seed phrase"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -233,6 +236,7 @@ const App: React.FC = () => {
           </div>
         </div>
       </div>
+      <Tooltip id="navigate-tooltip" />
     </div>
   );
 };
