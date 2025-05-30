@@ -182,20 +182,20 @@ const App: React.FC = () => {
           <h2 className="text-xl font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
             Child Seed Phrases
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {childMnemonics.map((mnemonic, index) => (
               <div key={index} 
-                className="flex items-center gap-4 p-4 bg-gray-900 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors duration-200">
-                <div className="font-mono text-gray-400 min-w-[16px]">
-                  {index}:
-                </div>
-                <div className="flex-1 font-mono text-sm text-gray-300 break-all">
+                className="flex items-center gap-2 p-2 bg-gray-900 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors duration-200">
+                <span className="px-2 py-1 bg-gray-800 rounded-full text-xs text-gray-400 border border-gray-700">
+                  #{index}
+                </span>
+                <div className="flex-1 font-mono text-sm text-gray-300 break-all bg-gray-800 p-1.5 rounded border border-gray-700">
                   {truncateMnemonic(mnemonic)}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <CopyButton text={mnemonic} />
                   <button
-                    className="p-2 text-gray-400 hover:text-gray-200 transition-colors duration-200"
+                    className="p-1.5 text-gray-400 hover:text-gray-200 transition-colors duration-200 bg-gray-800 rounded border border-gray-700"
                     onClick={() => setCurrentPath([...currentPath, index])}
                     title="Load this seed phrase"
                   >
