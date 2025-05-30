@@ -126,13 +126,30 @@ const App: React.FC = () => {
     }
   };
 
+  const generateRandomSeed = () => {
+    try {
+      // Generate 256 bits of entropy for a 24-word seed phrase
+      const entropy = crypto.getRandomValues(new Uint8Array(32));
+      const newSeed = bip39.entropyToMnemonic(entropy, wordlist);
+      setRootSeedPhrase(newSeed);
+    } catch (error) {
+      console.error('Error generating random seed:', error);
+      alert('Failed to generate random seed');
+    }
+  };
+
   if (!rootSeedPhrase) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+          <h1 className="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
             Seed Navigator
           </h1>
+          <p className="text-gray-300 mb-8">
+            A tool for exploring BIP39 seed phrases, deriving child seeds using BIP85, and generating 
+            Bitcoin and Nostr keys based on BIP32 derivation paths. Navigate through your seed hierarchy 
+            and explore derived addresses and keys.
+          </p>
           <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
             <h2 className="text-xl font-semibold mb-4">Enter BIP39 Seed Phrase</h2>
             <textarea
@@ -140,14 +157,22 @@ const App: React.FC = () => {
               rows={3}
               placeholder="Enter your BIP39 seed phrase here..."
               value={rootSeedPhrase}
-              onChange={(e) => setRootSeedPhrase(e.target.value.trim())}
+              onChange={(e) => setRootSeedPhrase(e.target.value)}
             />
-            <button
-              className="w-full py-3 px-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transform hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-              onClick={handleSetRootSeed}
-            >
-              Set Root Seed
-            </button>
+            <div className="flex gap-4">
+              <button
+                className="flex-1 py-3 px-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transform hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                onClick={handleSetRootSeed}
+              >
+                Set Root Seed
+              </button>
+              <button
+                className="flex-1 py-3 px-6 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg font-semibold hover:from-green-600 hover:to-teal-700 transform hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                onClick={generateRandomSeed}
+              >
+                Generate Random Seed
+              </button>
+            </div>
           </div>
         </div>
       </div>
