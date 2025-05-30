@@ -19,6 +19,7 @@ const truncateMnemonic = (mnemonic: string): string => {
 
 const App: React.FC = () => {
   const [rootSeedPhrase, setRootSeedPhrase] = useState('');
+  const [isRootSeedSet, setIsRootSeedSet] = useState(false);
   const [currentPath, setCurrentPath] = useState<number[]>([]);
   const [derivationPath, setDerivationPath] = useState("m/84'/0'/0'/0"); // Native SegWit path
 
@@ -120,6 +121,7 @@ const App: React.FC = () => {
         return;
       }
       setCurrentPath([]);
+      setIsRootSeedSet(true);
     } catch (error) {
       console.error('Error setting root seed:', error);
       alert('Invalid seed phrase');
@@ -132,13 +134,14 @@ const App: React.FC = () => {
       const entropy = crypto.getRandomValues(new Uint8Array(32));
       const newSeed = bip39.entropyToMnemonic(entropy, wordlist);
       setRootSeedPhrase(newSeed);
+      // Do NOT set isRootSeedSet here - only update the textarea
     } catch (error) {
       console.error('Error generating random seed:', error);
       alert('Failed to generate random seed');
     }
   };
 
-  if (!rootSeedPhrase) {
+  if (!isRootSeedSet) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6">
         <div className="max-w-2xl mx-auto">
