@@ -1,23 +1,8 @@
 import { useState } from 'react';
-import { DerivedKeys } from '../utils/keyDerivation';
+import { DerivedKeys, DerivedKeyCardProps, KeyFieldProps } from '../types';
 import { CopyButton } from './CopyButton';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
-
-interface DerivedKeyCardProps {
-  keys: DerivedKeys;
-  type: 'bitcoin' | 'nostr';
-}
-
-interface KeyFieldProps {
-  label?: string;
-  value: string;
-  index?: number;
-  variant: 'main' | 'detail';
-  toggleDetails?: () => void;
-  showDetailsButton?: boolean;
-  showDetails?: boolean;
-}
 
 const KeyField: React.FC<KeyFieldProps> = ({ 
   label, 
