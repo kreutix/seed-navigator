@@ -34,16 +34,16 @@ const App: React.FC = () => {
   }, [rootSeedPhrase, currentPath]);
 
   const childMnemonics = useMemo(() => {
-    if (!currentMnemonic) return [];
+    if (!rootSeedPhrase) return [];
     try {
       return Array.from({ length: 10 }, (_, i) => {
-        return deriveCurrentMnemonic(currentMnemonic, [...currentPath, i]);
+        return deriveCurrentMnemonic(rootSeedPhrase, [...currentPath, i]);
       });
     } catch (error) {
       console.error('Error deriving child mnemonics:', error);
       return [];
     }
-  }, [currentMnemonic, currentPath]);
+  }, [rootSeedPhrase, currentPath]);
 
   const derivedKeys = useMemo(() => {
     try {
