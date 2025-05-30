@@ -1,6 +1,6 @@
 import { HDKey } from '@scure/bip32';
 import * as bip39 from '@scure/bip39';
-import { bech32 } from 'bech32';
+import { bech32, bech32m } from 'bech32';
 import { ripemd160 } from '@noble/hashes/ripemd160';
 import { sha256 } from '@noble/hashes/sha256';
 import { sha512 } from '@noble/hashes/sha512';
@@ -82,7 +82,7 @@ const validateBip85Params = (index: number, language: number, words: number) => 
 const constructBip85Path = (index: number, language: number = 0, words: number = 12): string => {
   validateBip85Params(index, language, words);
   // BIP-85 paths are always hardened, so we use the ' notation
-  return `m/83696968'/39'/${language}'/${words}'/${index}'`;
+  return `m/83696968'/${BIP85_APPLICATIONS.BIP39}'/${language}'/${words}'/${index}'`;
 };
 
 const deriveBip85Entropy = (masterKey: HDKey, index: number, language: number = 0, words: number = 12): Uint8Array => {
@@ -172,34 +172,59 @@ export const deriveBitcoinKeys = (masterKey: HDKey, path: string): BitcoinKeys =
   const publicKeyHex = bytesToHex(key.publicKey);
   const publicKeyHash = bytesToHex(sha256(key.publicKey));
   const publicKeyHash160 = bytesToHex(ripemd160(sha256(key.publicKey)));
+  const pubkeyHash = ripemd160(sha256(key.publicKey));
+  let witnessProgram = '';
+  let checksum = '';
 
   if (path.startsWith("m/84'/")) { // Native SegWit (P2WPKH)
-    const pubkeyHash = ripemd160(sha256(key.publicKey));
     // For P2WPKH, witness version 0 and push 20 bytes
-    const witnessVersion = 0;
-    const programBytes = Uint8Array.from([...pubkeyHash]);
-    // Convert to 5-bit words for bech32
-    const words = bech32.toWords(programBytes);
-    // Add witness version to words
-    const witnessProgram = Uint8Array.from([witnessVersion, ...words]);
+    const words = bech32.toWords(pubkeyHash);
+    // Prepend witness version 0
+    const fullWords = new Uint8Array([0, ...words]);
     // Encode with bech32
-    address = bech32.encode('bc', witnessProgram);
-  } else if (path.startsWith("m/44'/")) { // Legacy (P2PKH)
-    const pubkeyHash = ripemd160(sha256(key.publicKey));
-    const versionAndHash = new Uint8Array([0x00, ...pubkeyHash]);
-    const checksum = sha256(sha256(versionAndHash)).slice(0, 4);
-    const final = new Uint8Array([...versionAndHash, ...checksum]);
+    address = bech32.encode('bc', fullWords);
+    // For witnessProgram display, show the full script including OP_0 OP_PUSHBYTES_20
+    witnessProgram = '0014' + bytesToHex(pubkeyHash);
+  } 
+  else if (path.startsWith("m/49'/")) { // Nested SegWit (P2SH-P2WPKH)
+    // Create redeem script (OP_0 + OP_PUSHBYTES_20 + <pubKeyHash>)
+    const redeemScript = new Uint8Array([0x00, 0x14, ...pubkeyHash]);
+    // Hash160 of the redeem script
+    const scriptHash = ripemd160(sha256(redeemScript));
+    // P2SH version byte (0x05) + scriptHash + checksum
+    const versionAndHash = new Uint8Array([0x05, ...scriptHash]);
+    const checksumBytes = sha256(sha256(versionAndHash)).slice(0, 4);
+    const final = new Uint8Array([...versionAndHash, ...checksumBytes]);
     address = base58Encode(final);
-  } else {
+    // Store the redeem script for display
+    witnessProgram = bytesToHex(redeemScript);
+    checksum = bytesToHex(checksumBytes);
+  }
+  else if (path.startsWith("m/86'/")) { // Taproot (P2TR)
+    // For Taproot, we need to use the x-only public key (32 bytes)
+    // Just take the 32 bytes x-coordinate from the 33-byte compressed public key
+    // Removing the first byte (0x02 or 0x03) which indicates parity
+    const xOnlyPubKey = key.publicKey.slice(1);
+    // For P2TR, witness version 1 and push 32 bytes
+    const words = bech32m.toWords(xOnlyPubKey);
+    // Prepend witness version 1
+    const fullWords = new Uint8Array([1, ...words]);
+    // Encode with bech32m (not regular bech32)
+    address = bech32m.encode('bc', fullWords);
+    // For witnessProgram display, show the full script including OP_1 OP_PUSHBYTES_32
+    witnessProgram = '5120' + bytesToHex(xOnlyPubKey);
+  }
+  else if (path.startsWith("m/44'/")) { // Legacy (P2PKH)
+    // P2PKH version byte (0x00) + pubkeyHash + checksum
+    const versionAndHash = new Uint8Array([0x00, ...pubkeyHash]);
+    const checksumBytes = sha256(sha256(versionAndHash)).slice(0, 4);
+    const final = new Uint8Array([...versionAndHash, ...checksumBytes]);
+    address = base58Encode(final);
+    checksum = bytesToHex(checksumBytes);
+  } 
+  else {
     throw new Error('Unsupported derivation path for Bitcoin');
   }
-
-  const pubkeyHash = ripemd160(sha256(key.publicKey));
-  // For witnessProgram display, show the full script including OP_PUSHBYTES_20
-  const scriptPubKey = new Uint8Array([0x00, 0x14, ...pubkeyHash]);
-  const witnessProgramWithChecksum = path.startsWith("m/84'/") 
-    ? bytesToHex(scriptPubKey)
-    : '';
 
   return {
     address,
@@ -207,8 +232,8 @@ export const deriveBitcoinKeys = (masterKey: HDKey, path: string): BitcoinKeys =
     publicKey: publicKeyHex,
     publicKeyHash,
     publicKeyHash160,
-    witnessProgram: witnessProgramWithChecksum,
-    checksum: path.startsWith("m/44'/") ? bytesToHex(sha256(sha256(new Uint8Array([0x00, ...pubkeyHash]))).slice(0, 4)) : ''
+    witnessProgram,
+    checksum
   };
 };
 
@@ -216,9 +241,11 @@ export const deriveNostrKeys = (masterKey: HDKey, path: string): NostrKeys => {
   const key = masterKey.derive(path);
   if (!key.privateKey || !key.publicKey) throw new Error('Keys not available');
   
+  // For Nostr, we need to ensure we're using the 32-byte private key
+  // and the correct compressed public key format
   return {
     nsec: bech32.encode('nsec', bech32.toWords(key.privateKey)),
-    npub: bech32.encode('npub', bech32.toWords(key.publicKey)),
+    npub: bech32.encode('npub', bech32.toWords(key.publicKey.slice(1))), // Use x-only pubkey for Nostr
   };
 };
 
@@ -226,10 +253,10 @@ export type PathType = 'bitcoin' | 'nostr' | 'unknown';
 
 export const getPathType = (path: string): PathType => {
   // Bitcoin paths
-  if (path.startsWith("m/44'/0'/") || // Legacy
-      path.startsWith("m/49'/0'/") || // Nested SegWit
-      path.startsWith("m/84'/0'/") || // Native SegWit
-      path.startsWith("m/86'/0'/")) { // Taproot
+  if (path.startsWith("m/44'/0'/") || // Legacy (P2PKH)
+      path.startsWith("m/49'/0'/") || // Nested SegWit (P2SH-P2WPKH)
+      path.startsWith("m/84'/0'/") || // Native SegWit (P2WPKH)
+      path.startsWith("m/86'/0'/")) { // Taproot (P2TR)
     return 'bitcoin';
   }
   

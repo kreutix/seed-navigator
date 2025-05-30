@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DerivedKeys } from '../utils/keyDerivation';
 import { CopyButton } from './CopyButton';
 
@@ -6,7 +7,21 @@ interface DerivedKeyCardProps {
   type: 'bitcoin' | 'nostr';
 }
 
-const KeyField: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+interface KeyFieldProps {
+  label: string;
+  value: string;
+  toggleDetails?: () => void;
+  showDetailsButton?: boolean;
+  showDetails?: boolean;
+}
+
+const KeyField: React.FC<KeyFieldProps> = ({ 
+  label, 
+  value, 
+  toggleDetails, 
+  showDetailsButton = false,
+  showDetails
+}) => (
   <div className="space-y-1">
     <div className="text-xs font-medium text-gray-400">{label}</div>
     <div className="flex items-center gap-2">
@@ -14,6 +29,14 @@ const KeyField: React.FC<{ label: string; value: string }> = ({ label, value }) 
         {value}
       </div>
       <CopyButton text={value} />
+      {showDetailsButton && (
+        <button 
+          onClick={toggleDetails}
+          className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 text-xs font-medium transition-colors duration-200"
+        >
+          {showDetails ? "Hide" : "Details"}
+        </button>
+      )}
     </div>
   </div>
 );
@@ -26,17 +49,34 @@ const BitcoinKeys: React.FC<{ address: string; privateKey: string; publicKey: st
   publicKeyHash160,
   witnessProgram,
   checksum
-}) => (
-  <div className="space-y-3">
-    <KeyField label="Bitcoin Address" value={address} />
-    <KeyField label="Bitcoin Private Key (WIF)" value={privateKey} />
-    <KeyField label="Public Key (hex)" value={publicKey} />
-    <KeyField label="Public Key Hash (SHA256)" value={publicKeyHash} />
-    <KeyField label="Public Key Hash (RIPEMD160)" value={publicKeyHash160} />
-    {witnessProgram && <KeyField label="Witness Program (P2WPKH)" value={witnessProgram} />}
-    {checksum && <KeyField label="Checksum (Legacy)" value={checksum} />}
-  </div>
-);
+}) => {
+  const [showDetails, setShowDetails] = useState(false);
+  
+  const toggleDetails = () => setShowDetails(!showDetails);
+
+  return (
+    <div className="space-y-3">
+      <KeyField 
+        label="Bitcoin Address" 
+        value={address} 
+        toggleDetails={toggleDetails}
+        showDetailsButton={true}
+        showDetails={showDetails}
+      />
+      
+      {showDetails && (
+        <div className="space-y-3 border-t border-gray-700 pt-3">
+          <KeyField label="Bitcoin Private Key (WIF)" value={privateKey} />
+          <KeyField label="Public Key (hex)" value={publicKey} />
+          <KeyField label="Public Key Hash (SHA256)" value={publicKeyHash} />
+          <KeyField label="Public Key Hash (RIPEMD160)" value={publicKeyHash160} />
+          {witnessProgram && <KeyField label="Witness Program (P2WPKH)" value={witnessProgram} />}
+          {checksum && <KeyField label="Checksum (Legacy)" value={checksum} />}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const NostrKeys: React.FC<{ nsec: string; npub: string }> = ({ nsec, npub }) => (
   <div className="space-y-3">
@@ -60,4 +100,4 @@ export const DerivedKeyCard: React.FC<DerivedKeyCardProps> = ({ keys, type }) =>
       <NostrKeys nsec={keys.nsec} npub={keys.npub} />
     )}
   </div>
-); 
+);

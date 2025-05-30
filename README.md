@@ -89,3 +89,7 @@ If you encounter any issues or have questions, please:
 
 - **Open an issue** on the [GitHub repository](https://github.com/kreutix/seed-navigator/issues).
 - **Check the documentation** for more details (coming soon).
+
+# Links
+
+https://secretscan.org/Bech32

@@ -7,6 +7,14 @@ import { DerivedKeyCard } from './components/DerivedKeyCard';
 import { DerivationPathSelector } from './components/DerivationPathSelector';
 import { CopyButton } from './components/CopyButton';
 
+// Helper function to truncate mnemonic to first 4 words
+const truncateMnemonic = (mnemonic: string): string => {
+  if (!mnemonic) return '';
+  const words = mnemonic.split(' ');
+  if (words.length <= 6) return mnemonic;
+  return words.slice(0, 6).join(' ') + ' ...';
+};
+
 const App: React.FC = () => {
   const [rootSeedPhrase, setRootSeedPhrase] = useState('');
   const [currentPath, setCurrentPath] = useState<number[]>([]);
@@ -35,35 +43,63 @@ const App: React.FC = () => {
   }, [currentMnemonic, currentPath]);
 
   const derivedKeys = useMemo(() => {
-    if (!currentMnemonic) return [];
     try {
-      const seed = bip39.mnemonicToSeedSync(currentMnemonic);
-      const masterKey = HDKey.fromMasterSeed(seed);
-      
-      return Array.from({ length: 10 }, (_, i) => {
-        // Ensure path starts with "m/" and append index
-        const path = derivationPath.startsWith('m/') ? 
-          `${derivationPath}/${i}` : 
-          `m/${derivationPath}/${i}`;
+      if (currentMnemonic) {
+        // Normal case - derive keys from the current mnemonic
+        const seed = bip39.mnemonicToSeedSync(currentMnemonic);
+        const masterKey = HDKey.fromMasterSeed(seed);
+        
+        return Array.from({ length: 10 }, (_, i) => {
+          // Ensure path starts with "m/" and append index
+          const path = derivationPath.startsWith('m/') ? 
+            `${derivationPath}/${i}` : 
+            `m/${derivationPath}/${i}`;
 
-        const nostrKeys = deriveNostrKeys(masterKey, path);
-        const bitcoinKeys = deriveBitcoinKeys(masterKey, path);
-        return {
+          const nostrKeys = deriveNostrKeys(masterKey, path);
+          const bitcoinKeys = deriveBitcoinKeys(masterKey, path);
+          return {
+            index: i,
+            nsec: nostrKeys.nsec,
+            npub: nostrKeys.npub,
+            bitcoinAddress: bitcoinKeys.address,
+            bitcoinPrivateKey: bitcoinKeys.privateKeyWIF,
+            bitcoinPublicKey: bitcoinKeys.publicKey,
+            bitcoinPublicKeyHash: bitcoinKeys.publicKeyHash,
+            bitcoinPublicKeyHash160: bitcoinKeys.publicKeyHash160,
+            bitcoinWitnessProgram: bitcoinKeys.witnessProgram,
+            bitcoinChecksum: bitcoinKeys.checksum
+          };
+        });
+      } else {
+        // Fallback case - create 10 placeholder keys to prevent layout jumping
+        return Array.from({ length: 10 }, (_, i) => ({
           index: i,
-          nsec: nostrKeys.nsec,
-          npub: nostrKeys.npub,
-          bitcoinAddress: bitcoinKeys.address,
-          bitcoinPrivateKey: bitcoinKeys.privateKeyWIF,
-          bitcoinPublicKey: bitcoinKeys.publicKey,
-          bitcoinPublicKeyHash: bitcoinKeys.publicKeyHash,
-          bitcoinPublicKeyHash160: bitcoinKeys.publicKeyHash160,
-          bitcoinWitnessProgram: bitcoinKeys.witnessProgram,
-          bitcoinChecksum: bitcoinKeys.checksum
-        };
-      });
+          nsec: '...',
+          npub: '...',
+          bitcoinAddress: '...',
+          bitcoinPrivateKey: '...',
+          bitcoinPublicKey: '...',
+          bitcoinPublicKeyHash: '...',
+          bitcoinPublicKeyHash160: '...',
+          bitcoinWitnessProgram: '...',
+          bitcoinChecksum: '...'
+        }));
+      }
     } catch (error) {
       console.error('Error deriving keys:', error);
-      return [];
+      // Even on error, return 10 placeholders to prevent layout jumping
+      return Array.from({ length: 10 }, (_, i) => ({
+        index: i,
+        nsec: '...',
+        npub: '...',
+        bitcoinAddress: '...',
+        bitcoinPrivateKey: '...',
+        bitcoinPublicKey: '...',
+        bitcoinPublicKeyHash: '...',
+        bitcoinPublicKeyHash160: '...',
+        bitcoinWitnessProgram: '...',
+        bitcoinChecksum: '...'
+      }));
     }
   }, [currentMnemonic, derivationPath]);
 
@@ -154,7 +190,7 @@ const App: React.FC = () => {
                   {index}:
                 </div>
                 <div className="flex-1 font-mono text-sm text-gray-300 break-all">
-                  {mnemonic}
+                  {truncateMnemonic(mnemonic)}
                 </div>
                 <div className="flex items-center gap-2">
                   <CopyButton text={mnemonic} />
@@ -177,7 +213,7 @@ const App: React.FC = () => {
         <div className="bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-700">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-              {pathType === 'bitcoin' ? 'Bitcoin Keys' : 'Nostr Keys'}
+              {pathType === 'nostr' ? 'Nostr Keys' : 'Bitcoin Keys'}
             </h2>
             <div className="flex-1 max-w-xl ml-6">
               <DerivationPathSelector
@@ -186,22 +222,15 @@ const App: React.FC = () => {
               />
             </div>
           </div>
-          {pathType !== 'unknown' && (
-            <div className="grid gap-4">
-              {derivedKeys.map((keys) => (
-                <DerivedKeyCard 
-                  key={keys.index} 
-                  keys={keys} 
-                  type={pathType === 'bitcoin' ? 'bitcoin' : 'nostr'}
-                />
-              ))}
-            </div>
-          )}
-          {pathType === 'unknown' && (
-            <div className="text-center py-8 text-gray-400">
-              Please select a valid Bitcoin or Nostr derivation path
-            </div>
-          )}
+          <div className="grid gap-4">
+            {derivedKeys.map((keys) => (
+              <DerivedKeyCard 
+                key={keys.index} 
+                keys={keys} 
+                type={pathType === 'nostr' ? 'nostr' : 'bitcoin'}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
