@@ -25,8 +25,11 @@ const KeyField: React.FC<KeyFieldProps> = ({
   showDetails
 }) => (
   <div className="flex items-center gap-2 p-0">
+    <span className="px-2 py-1 bg-gray-800 rounded-full text-xs text-gray-400 border border-gray-700">
+      #{index}
+    </span>
     <span className="text-xs text-gray-400 whitespace-nowrap">
-      {label} #{index}
+      {label}
     </span>
     <div className="flex-1 font-mono text-sm text-gray-300 break-all bg-gray-800 p-1.5 rounded border border-gray-700">
       {value}
@@ -37,6 +40,7 @@ const KeyField: React.FC<KeyFieldProps> = ({
         <button 
           onClick={toggleDetails}
           className="p-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded border border-gray-700 text-xs font-medium transition-colors duration-200"
+          title={showDetails ? "Hide details" : "Show details"}
         >
           {showDetails ? "Hide" : "Details"}
         </button>
@@ -84,12 +88,30 @@ const BitcoinKeys: React.FC<{ address: string; privateKey: string; publicKey: st
   );
 };
 
-const NostrKeys: React.FC<{ nsec: string; npub: string; index: number }> = ({ nsec, npub, index }) => (
-  <div className="space-y-1">
-    <KeyField label="Nostr Private Key (nsec)" value={nsec} index={index} />
-    <KeyField label="Nostr Public Key (npub)" value={npub} index={index} />
-  </div>
-);
+const NostrKeys: React.FC<{ nsec: string; npub: string; index: number }> = ({ nsec, npub, index }) => {
+  const [showDetails, setShowDetails] = useState(false);
+  
+  const toggleDetails = () => setShowDetails(!showDetails);
+
+  return (
+    <div className="space-y-1">
+      <KeyField 
+        label="Nostr Public Key (npub)"
+        value={npub} 
+        index={index}
+        toggleDetails={toggleDetails}
+        showDetailsButton={true}
+        showDetails={showDetails}
+      />
+      
+      {showDetails && (
+        <div className="space-y-1 border-t border-gray-700 pt-1">
+          <KeyField label="Nostr Private Key (nsec)" value={nsec} index={index} />
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const DerivedKeyCard: React.FC<DerivedKeyCardProps> = ({ keys, type }) => (
   <div className="bg-gray-900 rounded-lg border border-gray-700 p-2 hover:border-gray-600 transition-colors duration-200">

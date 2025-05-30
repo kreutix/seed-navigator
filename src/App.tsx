@@ -197,7 +197,7 @@ const App: React.FC = () => {
                   <button
                     className="p-1.5 text-gray-400 hover:text-gray-200 transition-colors duration-200 bg-gray-800 rounded border border-gray-700"
                     onClick={() => setCurrentPath([...currentPath, index])}
-                    title="Load this seed phrase"
+                    title="Navigate to this seed phrase"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
