@@ -118,21 +118,29 @@ const base58Encode = (data: Uint8Array): string => {
 };
 
 export const deriveCurrentMnemonic = (rootSeedPhrase: string, path: number[]): string => {
+  // Base case: if path is empty, return the root seed phrase
   if (path.length === 0) return rootSeedPhrase;
   
   if (!bip39.validateMnemonic(rootSeedPhrase, wordlist)) {
     throw new Error('Invalid root seed phrase');
   }
   
-  const seed = bip39.mnemonicToSeedSync(rootSeedPhrase);
-  const masterKey = HDKey.fromMasterSeed(seed);
-  
   // Using English 24-word mnemonics
   const language = BIP85_APPLICATIONS.BIP39_LANGUAGES.ENGLISH;
   const words = BIP85_APPLICATIONS.BIP39_WORD_LENGTHS.WORDS_24.words;
   
-  const entropy = deriveBip85Entropy(masterKey, path[0], language, words);
-  return bip39.entropyToMnemonic(entropy, wordlist);
+  // Recursive implementation for multi-level derivation
+  let currentSeed = rootSeedPhrase;
+  
+  // Process each level of the path
+  for (let i = 0; i < path.length; i++) {
+    const seed = bip39.mnemonicToSeedSync(currentSeed);
+    const masterKey = HDKey.fromMasterSeed(seed);
+    const entropy = deriveBip85Entropy(masterKey, path[i], language, words);
+    currentSeed = bip39.entropyToMnemonic(entropy, wordlist);
+  }
+  
+  return currentSeed;
 };
 
 const privateKeyToWIF = (privateKey: Uint8Array): string => {
