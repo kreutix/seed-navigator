@@ -141,6 +141,12 @@ const App: React.FC = () => {
     }
   };
 
+  const handleNewSeed = () => {
+    setIsRootSeedSet(false);
+    setRootSeedPhrase('');
+    setCurrentPath([]);
+  };
+
   if (!isRootSeedSet) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6">
@@ -197,14 +203,24 @@ const App: React.FC = () => {
                 root/{currentPath.join('/')}{currentPath.length > 0 ? '/' : ''}
               </span>
             </div>
-            {currentPath.length > 0 && (
+            <div className="flex space-x-3">
+              {currentPath.length > 0 && (
+                <button
+                  className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200"
+                  onClick={() => setCurrentPath(currentPath.slice(0, -1))}
+                >
+                  ← Back
+                </button>
+              )}
               <button
-                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200"
-                onClick={() => setCurrentPath(currentPath.slice(0, -1))}
+                className="px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-lg hover:from-red-600 hover:to-orange-700 transition-colors duration-200"
+                onClick={handleNewSeed}
+                data-tooltip-id="new-seed-tooltip"
+                data-tooltip-content="Start over with new seed phrase"
               >
-                ← Back
+                New Seed
               </button>
-            )}
+            </div>
           </div>
         </div>
 
@@ -265,6 +281,7 @@ const App: React.FC = () => {
         </div>
       </div>
       <Tooltip id="navigate-tooltip" />
+      <Tooltip id="new-seed-tooltip" />
     </div>
   );
 };
